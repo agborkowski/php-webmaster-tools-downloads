@@ -154,13 +154,13 @@
 					'service' => "sitemaps",
 					'source' => "Google-WMTdownloadscript-0.1-php"
 				);
-				
-				// Before PHP version 5.2.0 and when the first char of $pass is an @ symbol, 
+
+				// Before PHP version 5.2.0 and when the first char of $pass is an @ symbol,
 				// send data in CURLOPT_POSTFIELDS as urlencoded string.
 				if ('@' === (string)$pwd[0] || version_compare(PHP_VERSION, '5.2.0') < 0) {
 				    $postRequest = http_build_query($postRequest);
-				}				
-				
+				}
+
 				$ch = curl_init();
 				curl_setopt($ch, CURLOPT_URL, $url);
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -288,10 +288,10 @@
 							self::DownloadCSV_XTRA($site, $savepath,
 							  "social-activity", "x26", "SOCIAL_ACTIVITY", "social-activity-dl");
 						}
-                        elseif($table=="LATEST_BACKLINKS") {
-                            self::DownloadCSV_XTRA($site, $savepath,
+	                    elseif($table=="LATEST_BACKLINKS") {
+	                        self::DownloadCSV_XTRA($site, $savepath,
 							  "external-links-domain", "\)", "LATEST_BACKLINKS", "backlinks-latest-dl");
-                        }
+	                    }
 						else {
 							$finalName = "$savepath/$table-$filename.csv";
 							$finalUrl = $downloadUrls[$table] ."&prop=ALL&db=%s&de=%s&more=true";
@@ -301,6 +301,36 @@
 					}
 				} else { return false; }
 			}
+
+		/**
+		 *  Return downloaded data as array
+		 *
+		 *  @param $site    String   Site URL available in GWT Account.
+		 *  @param $savepath  String   Optional path to save CSV to (no trailing slash!).
+		 */
+		public function Download($site)
+		{
+			$report = [
+				'site' => $site,
+				'tables' => $this->_tables,
+				'datatange' => $this->_daterange,
+				'data' => []
+			];
+			if(self::IsLoggedIn() === true) {
+				$downloadUrls = self::GetDownloadUrls($site);
+				$tables = $this->_tables;
+
+				foreach($tables as $table) {
+					$finalUrl = $downloadUrls[$table] ."&prop=ALL&db=%s&de=%s&more=true";
+					$finalUrl = sprintf($finalUrl, $this->_daterange[0], $this->_daterange[1]);
+					$data = self::GetData($finalUrl);
+					$rows = str_getcsv($data, "\n");
+					$fields = str_getcsv($rows[0]);
+					$report['data'][$table] = array_map('str_getcsv', $rows);
+				}
+			}
+			return $report;
+		}
 
 		/**
 		 *  Downloads "unofficial" downloads based on the given URL.
